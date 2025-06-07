@@ -1,4 +1,4 @@
-//change1
+//add Audio meter effect
 let amp, fft, song, playButton;
 let rings = [];
 let ringConfigs = [];
