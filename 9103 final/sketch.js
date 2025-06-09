@@ -6,6 +6,9 @@ let baseWidth = 520; // set base width of canvas to be 520
 let baseHeight = 520; // set base height of canvas to be 520
 let scaling = 1; // set factor to scale artwork when window is resized
 
+let visibleInterval = 120; // How many frames to wait before changing circle visibility
+let nextVisibleState = 0; // To keep track of when to switch state
+
 // set outer ellipses variables
 let ellipses = [
     { x: 286.8, y: 73.4, angle: 0, fillColor: null},
@@ -322,7 +325,7 @@ function drawCircles(circleList) {
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
-    noLoop();
+    // noLoop();
     angleMode(RADIANS);
 
     // Calculate factor to scale artwork
@@ -541,9 +544,17 @@ function draw() {
     translate((width - baseWidth * scaling) / 2, (height - baseHeight * scaling) / 2);
     scale(scaling);
 
-    for (let r of rings) {
-        r.display();
+    // Toggle the visibility at set intervals
+    if (frameCount % visibleInterval === 0) {
+        toggleVisibility();
     }
+
+    for (let r of rings) {
+        if (r.visible){
+            r.display();
+        }
+    }
+
     fillEllipse(ellipses);
     for (let i = 0; i < ellipses.length; i++) {
         let e = ellipses[i];
@@ -559,6 +570,13 @@ function draw() {
     }
     drawCircles(circles);
 
+}
+
+function toggleVisibility() {
+    // Toggle the circle Visibility
+    for (let r of rings) {
+        r.visible = !r.visible;
+    }
 }
 
 function windowResized() {
@@ -582,6 +600,8 @@ class RingPattern {
 
         this.hasCurve = config.hasCurve ?? false;
         this.angle = config.angle ?? 0;
+
+        this.visible = true; // Set state to true
     }
 
     display() {
