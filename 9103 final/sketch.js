@@ -1,8 +1,5 @@
-//add Audio meter effect
-let amp, fft, song, playButton;
 let rings = [];
 let ringConfigs = [];
-let amplitude;
 let fillColors = ['#FABC08','#4CAECD','#06978A','#D70E08'];
 
 let ellipses = [
@@ -117,9 +114,6 @@ let ellipses = [
     { x: 242.5, y: 111.4, angle: 0, fillColor: null}
 ];
 
-function preload() {
-  song = loadSound('assets/song.mp3');
-}
 
 function fillEllipse(ellipsesList) {
     let count = 0;
@@ -309,37 +303,20 @@ let circles = [
     { x: 232.5, y: 519.5, r: 4.5},
 ];
 
-function drawCircles(circleList, scaleFactor) {
+function drawCircles(circleList) {
     stroke("#000000");
     strokeWeight(4);
+
     for (let c of circleList) {
         fill('#FFFFFF');
-        ellipse(c.x, c.y, c.r * 2 * scaleFactor, c.r * 2 * scaleFactor);
+        ellipse(c.x, c.y, c.r * 2, c.r * 2);
     }
 }
 
 function setup() {
     createCanvas(520, 520);
+    noLoop();
     angleMode(RADIANS);
-
-    // 初始化 p5.Amplitude 实例
-    amp = new p5.Amplitude();
-    amp.setInput(song);
-
-    // 初始化 FFT
-    fft = new p5.FFT(0.8, 128);
-    fft.setInput(song);
-
-    // 创建播放/暂停按钮
-    playButton = createButton('Play/Pause');
-    playButton.position(10, 10);
-    playButton.mousePressed(() => {
-        if (song.isPlaying()) {
-            song.pause();
-        } else {
-            song.loop();
-        }
-    });
 
     ringConfigs = [
         { //number 1
@@ -544,31 +521,32 @@ function setup() {
         rings.push(new RingPattern(config));
     }
 
+
+    for (let config of ringConfigs) {
+        rings.push(new RingPattern(config));
+    }
 }
 
 
 function draw() {
-    let scale = 1;
-    if (song && song.isPlaying()) {
-        scale = 1 + amp.getLevel() * 1.5;
-    }
     background(1, 89, 125);
     for (let r of rings) {
-        r.display(scale);
+        r.display();
     }
-
     fillEllipse(ellipses);
     for (let i = 0; i < ellipses.length; i++) {
         let e = ellipses[i];
         stroke("#F28633");
         strokeWeight(1);
-        fill(e.fillColor || "white");
+        fill(e.fillColor || "white");        // 默认白色填充
+
         push();
         translate(e.x, e.y);
         rotate(radians(e.angle));
         ellipse(0, 0, 5, 11);
         pop();
     }
+    drawCircles(circles);
 
 }
 
@@ -576,37 +554,45 @@ class RingPattern {
     constructor(config) {
         this.x = config.x;
         this.y = config.y;
+
         this.r0 = 6;
         this.r1 = 20;
         this.r2 = 35;
         this.r3 = 70;
-        this.fillStyles = config.fillStyles;
+
+        this.fillStyles = config.fillStyles; // [center, inner, outer]
         this.bgColors = config.bgColors;
         this.patternColors = config.patternColors;
+
         this.hasCurve = config.hasCurve ?? false;
         this.angle = config.angle ?? 0;
     }
 
-    display(scale = 1) {
+    display() {
+        // 边框圆
         noStroke();
         noFill();
-        ellipse(this.x, this.y, this.r1 * 2 * scale);
-        ellipse(this.x, this.y, this.r2 * 2 * scale);
-        ellipse(this.x, this.y, this.r3 * 2 * scale);
+        ellipse(this.x, this.y, this.r1 * 2);
+        ellipse(this.x, this.y, this.r2 * 2);
+        ellipse(this.x, this.y, this.r3 * 2);
 
-        this.drawRegion(this.r0 * scale, this.r1 * scale, this.fillStyles[0], this.bgColors[0], this.patternColors[0], scale);
-        this.drawRegion(this.r1 * scale, this.r2 * scale, this.fillStyles[1], this.bgColors[1], this.patternColors[1], scale);
-        this.drawRegion(this.r2 * scale, this.r3 * scale, this.fillStyles[2], this.bgColors[2], this.patternColors[2], scale);
+        // 每个区域：中心，内圈，中圈
+        this.drawRegion(this.r0, this.r1, this.fillStyles[0], this.bgColors[0], this.patternColors[0]);
+        this.drawRegion(this.r1, this.r2, this.fillStyles[1], this.bgColors[1], this.patternColors[1]);
+        this.drawRegion(this.r2, this.r3, this.fillStyles[2], this.bgColors[2], this.patternColors[2]);
 
-        this.drawPinkCurve(scale);
-
+        // 弧线
+        this.drawPinkCurve();
+        // 中心白圆（覆盖最中心区域）
         noStroke();
         fill(230);
-        ellipse(this.x, this.y, this.r0 * 2 * scale);
+        ellipse(this.x, this.y, this.r0 * 2);  // 用 r0 控制大小
+
     }
 
     drawRegion(innerR, outerR, style, bgColor, patternColor) {
         noStroke();
+        // stroke(this.bgColors[0]);
         fill(bgColor);
         this.drawDonut(innerR, outerR);
 
@@ -617,7 +603,9 @@ class RingPattern {
         } else if (style === 'layered') {
             this.drawLayeredRings(innerR, outerR, patternColor);
         }
+
     }
+
     drawDonut(innerR, outerR) {
         beginShape();
         for (let a = 0; a < TWO_PI; a += 0.05) {
@@ -647,16 +635,21 @@ class RingPattern {
         }
         endShape(CLOSE);
     }
+
+
     drawLayeredRings(innerR, outerR, baseColors) {
         let ringCount = 14;
 
-
-        let colorPool = [...baseColors];
+        // 保证每种颜色至少出现一次，随机填满至6个
+        let colorPool = [...baseColors];  // 三个颜色
         while (colorPool.length < ringCount) {
             colorPool.push(random(baseColors));
         }
 
+        // 打乱顺序
         shuffle(colorPool, true);
+
+        // 绘制
         noFill();
         strokeWeight(3);
         for (let i = 0; i < ringCount; i++) {
@@ -704,15 +697,19 @@ class RingPattern {
     }
 
 
-    drawPinkCurve(scale = 1) {
+
+
+
+    drawPinkCurve() {
         if (!this.hasCurve) return;
+
         push();
         translate(this.x, this.y);
         rotate(this.angle);
         stroke('#F35074');
-        strokeWeight(4 * scale);
+        strokeWeight(4);
         noFill();
-        let s = 0.5 * scale;
+        let s = 0.5;
         bezier(
             0, 0,
             65 * s, -18 * s,
