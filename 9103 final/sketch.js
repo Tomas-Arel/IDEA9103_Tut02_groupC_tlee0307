@@ -2,6 +2,11 @@ let rings = [];
 let ringConfigs = [];
 let fillColors = ['#FABC08','#4CAECD','#06978A','#D70E08'];
 
+let baseWidth = 520; // set base width of canvas to be 520
+let baseHeight = 520; // set base height of canvas to be 520
+let scaling = 1; // set factor to scale artwork when window is resized
+
+// set outer ellipses variables
 let ellipses = [
     { x: 286.8, y: 73.4, angle: 0, fillColor: null},
     { x: 301.1, y: 40.6, angle: 0, fillColor: null},
@@ -114,7 +119,7 @@ let ellipses = [
     { x: 242.5, y: 111.4, angle: 0, fillColor: null}
 ];
 
-
+// draw function for ellipse
 function fillEllipse(ellipsesList) {
     let count = 0;
     for (let i = 0; i < ellipsesList.length; i++) {
@@ -126,6 +131,7 @@ function fillEllipse(ellipsesList) {
     }
 }
 
+// set outer small circle variables
 let circles = [
     { x: 12.0, y: 9.0, r: 6.0},
     { x: 12.0, y: 9.0, r: 6.0},
@@ -303,6 +309,7 @@ let circles = [
     { x: 232.5, y: 519.5, r: 4.5},
 ];
 
+// draw function for outer circle
 function drawCircles(circleList) {
     stroke("#000000");
     strokeWeight(4);
@@ -314,9 +321,12 @@ function drawCircles(circleList) {
 }
 
 function setup() {
-    createCanvas(520, 520);
+    createCanvas(windowWidth, windowHeight);
     noLoop();
     angleMode(RADIANS);
+
+    // Calculate factor to scale artwork
+    scaling = min(width / baseWidth, height / baseHeight)
 
     ringConfigs = [
         { //number 1
@@ -521,15 +531,17 @@ function setup() {
         rings.push(new RingPattern(config));
     }
 
-
-    for (let config of ringConfigs) {
-        rings.push(new RingPattern(config));
-    }
 }
 
 
 function draw() {
     background(1, 89, 125);
+
+    push();
+    // Scale and center the artpiece
+    translate((width - baseWidth * scaling) / 2, (height - baseHeight * scaling) / 2);
+    scale(scaling);
+
     for (let r of rings) {
         r.display();
     }
@@ -548,6 +560,11 @@ function draw() {
     }
     drawCircles(circles);
 
+}
+
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
+    scaling = min(width / baseWidth, height / baseHeight);
 }
 
 class RingPattern {
@@ -569,24 +586,24 @@ class RingPattern {
     }
 
     display() {
-        // 边框圆
+        // border circle
         noStroke();
         noFill();
         ellipse(this.x, this.y, this.r1 * 2);
         ellipse(this.x, this.y, this.r2 * 2);
         ellipse(this.x, this.y, this.r3 * 2);
 
-        // 每个区域：中心，内圈，中圈
+        // Each Area：Center，Inner Circle，Outer Circle
         this.drawRegion(this.r0, this.r1, this.fillStyles[0], this.bgColors[0], this.patternColors[0]);
         this.drawRegion(this.r1, this.r2, this.fillStyles[1], this.bgColors[1], this.patternColors[1]);
         this.drawRegion(this.r2, this.r3, this.fillStyles[2], this.bgColors[2], this.patternColors[2]);
 
-        // 弧线
+        // arc
         this.drawPinkCurve();
-        // 中心白圆（覆盖最中心区域）
+        // Center white circle
         noStroke();
         fill(230);
-        ellipse(this.x, this.y, this.r0 * 2);  // 用 r0 控制大小
+        ellipse(this.x, this.y, this.r0 * 2);  // control size using r0
 
     }
 
@@ -620,7 +637,7 @@ class RingPattern {
     }
 
     drawZigzagRing(innerR, outerR, steps, ringColor) {
-        let offset = 5; // 安全内缩
+        let offset = 5; // safe offset
 
         stroke(ringColor);
         strokeWeight(1.5);
@@ -640,16 +657,16 @@ class RingPattern {
     drawLayeredRings(innerR, outerR, baseColors) {
         let ringCount = 14;
 
-        // 保证每种颜色至少出现一次，随机填满至6个
-        let colorPool = [...baseColors];  // 三个颜色
+        // Makes sure each colour appears once and uses 6 randomly
+        let colorPool = [...baseColors];  // Three colours
         while (colorPool.length < ringCount) {
             colorPool.push(random(baseColors));
         }
 
-        // 打乱顺序
+        // shuffles the colour order
         shuffle(colorPool, true);
 
-        // 绘制
+        // draw the rings
         noFill();
         strokeWeight(3);
         for (let i = 0; i < ringCount; i++) {
