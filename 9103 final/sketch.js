@@ -537,7 +537,6 @@ function setup() {
 function draw() {
     background(1, 89, 125);
 
-    push();
     // Scale and center the artpiece
     translate((width - baseWidth * scaling) / 2, (height - baseHeight * scaling) / 2);
     scale(scaling);
@@ -550,7 +549,7 @@ function draw() {
         let e = ellipses[i];
         stroke("#F28633");
         strokeWeight(1);
-        fill(e.fillColor || "white");        // 默认白色填充
+        fill(e.fillColor || "white");        // Default white fill
 
         push();
         translate(e.x, e.y);
@@ -698,7 +697,7 @@ class RingPattern {
                 let y = this.y + effectiveR * sin(angle);
 
 
-                let sizeFactor = map(effectiveR, rMin, rMax, rMin * 0.03, rMax * 0.018); // 你可调范围
+                let sizeFactor = map(effectiveR, rMin, rMax, rMin * 0.03, rMax * 0.018); // Adjustable range
                 let w = random(4, 6) * sizeFactor;
                 let h = random(3, 5) * sizeFactor;
 
