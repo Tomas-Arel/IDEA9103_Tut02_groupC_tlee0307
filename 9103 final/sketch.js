@@ -1,10 +1,12 @@
-//add Audio meter effect
-let amp, fft, song, playButton;
 let rings = [];
 let ringConfigs = [];
-let amplitude;
 let fillColors = ['#FABC08','#4CAECD','#06978A','#D70E08'];
 
+let baseWidth = 520; // set base width of canvas to be 520
+let baseHeight = 520; // set base height of canvas to be 520
+let scaling = 1; // set factor to scale artwork when window is resized
+
+// set outer ellipses variables
 let ellipses = [
     { x: 286.8, y: 73.4, angle: 0, fillColor: null},
     { x: 301.1, y: 40.6, angle: 0, fillColor: null},
@@ -117,10 +119,7 @@ let ellipses = [
     { x: 242.5, y: 111.4, angle: 0, fillColor: null}
 ];
 
-function preload() {
-  song = loadSound('assets/song.mp3');
-}
-
+// draw function for ellipse
 function fillEllipse(ellipsesList) {
     let count = 0;
     for (let i = 0; i < ellipsesList.length; i++) {
@@ -132,6 +131,7 @@ function fillEllipse(ellipsesList) {
     }
 }
 
+// set outer small circle variables
 let circles = [
     { x: 12.0, y: 9.0, r: 6.0},
     { x: 12.0, y: 9.0, r: 6.0},
@@ -309,37 +309,24 @@ let circles = [
     { x: 232.5, y: 519.5, r: 4.5},
 ];
 
-function drawCircles(circleList, scaleFactor) {
+// draw function for outer circle
+function drawCircles(circleList) {
     stroke("#000000");
     strokeWeight(4);
+
     for (let c of circleList) {
         fill('#FFFFFF');
-        ellipse(c.x, c.y, c.r * 2 * scaleFactor, c.r * 2 * scaleFactor);
+        ellipse(c.x, c.y, c.r * 2, c.r * 2);
     }
 }
 
 function setup() {
-    createCanvas(520, 520);
+    createCanvas(windowWidth, windowHeight);
+    noLoop();
     angleMode(RADIANS);
 
-    // 初始化 p5.Amplitude 实例
-    amp = new p5.Amplitude();
-    amp.setInput(song);
-
-    // 初始化 FFT
-    fft = new p5.FFT(0.8, 128);
-    fft.setInput(song);
-
-    // 创建播放/暂停按钮
-    playButton = createButton('Play/Pause');
-    playButton.position(10, 10);
-    playButton.mousePressed(() => {
-        if (song.isPlaying()) {
-            song.pause();
-        } else {
-            song.loop();
-        }
-    });
+    // Calculate factor to scale artwork
+    scaling = min(width / baseWidth, height / baseHeight)
 
     ringConfigs = [
         { //number 1
@@ -548,65 +535,80 @@ function setup() {
 
 
 function draw() {
-    let scale = 1;
-    if (song && song.isPlaying()) {
-        scale = 1 + amp.getLevel() * 1.5;
-    }
     background(1, 89, 125);
-    for (let r of rings) {
-        r.display(scale);
-    }
 
+    // Scale and center the artpiece
+    translate((width - baseWidth * scaling) / 2, (height - baseHeight * scaling) / 2);
+    scale(scaling);
+
+    for (let r of rings) {
+        r.display();
+    }
     fillEllipse(ellipses);
     for (let i = 0; i < ellipses.length; i++) {
         let e = ellipses[i];
         stroke("#F28633");
         strokeWeight(1);
-        fill(e.fillColor || "white");
+        fill(e.fillColor || "white");        // Default white fill
+
         push();
         translate(e.x, e.y);
         rotate(radians(e.angle));
         ellipse(0, 0, 5, 11);
         pop();
     }
+    drawCircles(circles);
 
+}
+
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
+    scaling = min(width / baseWidth, height / baseHeight);
 }
 
 class RingPattern {
     constructor(config) {
         this.x = config.x;
         this.y = config.y;
+
         this.r0 = 6;
         this.r1 = 20;
         this.r2 = 35;
         this.r3 = 70;
-        this.fillStyles = config.fillStyles;
+
+        this.fillStyles = config.fillStyles; // [center, inner, outer]
         this.bgColors = config.bgColors;
         this.patternColors = config.patternColors;
+
         this.hasCurve = config.hasCurve ?? false;
         this.angle = config.angle ?? 0;
     }
 
-    display(scale = 1) {
+    display() {
+        // border circle
         noStroke();
         noFill();
-        ellipse(this.x, this.y, this.r1 * 2 * scale);
-        ellipse(this.x, this.y, this.r2 * 2 * scale);
-        ellipse(this.x, this.y, this.r3 * 2 * scale);
+        ellipse(this.x, this.y, this.r1 * 2);
+        ellipse(this.x, this.y, this.r2 * 2);
+        ellipse(this.x, this.y, this.r3 * 2);
 
-        this.drawRegion(this.r0 * scale, this.r1 * scale, this.fillStyles[0], this.bgColors[0], this.patternColors[0], scale);
-        this.drawRegion(this.r1 * scale, this.r2 * scale, this.fillStyles[1], this.bgColors[1], this.patternColors[1], scale);
-        this.drawRegion(this.r2 * scale, this.r3 * scale, this.fillStyles[2], this.bgColors[2], this.patternColors[2], scale);
+        // Each Area：Center，Inner Circle，Outer Circle
+        this.drawRegion(this.r0, this.r1, this.fillStyles[0], this.bgColors[0], this.patternColors[0]);
+        this.drawRegion(this.r1, this.r2, this.fillStyles[1], this.bgColors[1], this.patternColors[1]);
+        this.drawRegion(this.r2, this.r3, this.fillStyles[2], this.bgColors[2], this.patternColors[2]);
 
-        this.drawPinkCurve(scale);
-
+        // arc
+        this.drawPinkCurve();
+        // Center white circle
         noStroke();
         fill(230);
-        ellipse(this.x, this.y, this.r0 * 2 * scale);
+        ellipse(this.x, this.y, this.r0 * 2);  // control size using r0
+
     }
 
     drawRegion(innerR, outerR, style, bgColor, patternColor) {
         noStroke();
+        // stroke(this.bgColors[0]);
         fill(bgColor);
         this.drawDonut(innerR, outerR);
 
@@ -617,7 +619,9 @@ class RingPattern {
         } else if (style === 'layered') {
             this.drawLayeredRings(innerR, outerR, patternColor);
         }
+
     }
+
     drawDonut(innerR, outerR) {
         beginShape();
         for (let a = 0; a < TWO_PI; a += 0.05) {
@@ -632,7 +636,7 @@ class RingPattern {
     }
 
     drawZigzagRing(innerR, outerR, steps, ringColor) {
-        let offset = 5; // 安全内缩
+        let offset = 5; // safe offset
 
         stroke(ringColor);
         strokeWeight(1.5);
@@ -647,16 +651,21 @@ class RingPattern {
         }
         endShape(CLOSE);
     }
+
+
     drawLayeredRings(innerR, outerR, baseColors) {
         let ringCount = 14;
 
-
-        let colorPool = [...baseColors];
+        // Makes sure each colour appears once and uses 6 randomly
+        let colorPool = [...baseColors];  // Three colours
         while (colorPool.length < ringCount) {
             colorPool.push(random(baseColors));
         }
 
+        // shuffles the colour order
         shuffle(colorPool, true);
+
+        // draw the rings
         noFill();
         strokeWeight(3);
         for (let i = 0; i < ringCount; i++) {
@@ -688,7 +697,7 @@ class RingPattern {
                 let y = this.y + effectiveR * sin(angle);
 
 
-                let sizeFactor = map(effectiveR, rMin, rMax, rMin * 0.03, rMax * 0.018); // 你可调范围
+                let sizeFactor = map(effectiveR, rMin, rMax, rMin * 0.03, rMax * 0.018); // Adjustable range
                 let w = random(4, 6) * sizeFactor;
                 let h = random(3, 5) * sizeFactor;
 
@@ -704,15 +713,19 @@ class RingPattern {
     }
 
 
-    drawPinkCurve(scale = 1) {
+
+
+
+    drawPinkCurve() {
         if (!this.hasCurve) return;
+
         push();
         translate(this.x, this.y);
         rotate(this.angle);
         stroke('#F35074');
-        strokeWeight(4 * scale);
+        strokeWeight(4);
         noFill();
-        let s = 0.5 * scale;
+        let s = 0.5;
         bezier(
             0, 0,
             65 * s, -18 * s,
