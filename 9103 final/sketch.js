@@ -529,8 +529,8 @@ function setup() {
         }
     ];
 
-    for (let config of ringConfigs) {
-        rings.push(new RingPattern(config));
+    for (let i = 0; i < ringConfigs.length; i++) {
+        rings.push(new RingPattern(ringConfigs[i], i));
     }
 
 }
@@ -570,13 +570,15 @@ function draw() {
 }
 
 function toggleVisibility() {
-    // Toggle the circle Visibility
+    // for (let r of rings) {
+    //     if (r.fadeMode === 'visible') {
+    //         r.fadeMode = 'fadeOut';
+    //     } else if (r.fadeMode === 'hidden') {
+    //         r.fadeMode = 'fadeIn';
+    //     }
+    // }
     for (let r of rings) {
-        if (r.fadeMode === 'visible') {
-            r.fadeMode = 'fadeOut';
-        } else if (r.fadeMode === 'hidden') {
-            r.fadeMode = 'fadeIn';
-        }
+        r.fadeTimer = r.fadeDelay; // reset timer with delay
     }
 }
 
@@ -586,7 +588,7 @@ function windowResized() {
 }
 
 class RingPattern {
-    constructor(config) {
+    constructor(config, ringIndex) {
         this.x = config.x;
         this.y = config.y;
 
@@ -605,9 +607,25 @@ class RingPattern {
         this.fadeMode = 'visible';
         this.fadeAlpha = 255; // Alpha value between 0-255, set at max
         this.fadeSpeed = 3; // Control how fast the rings fade
+        this.index = ringIndex; // Track which ring has faded
+        this.fadeDelay = ringIndex * 5 // Stagger the fade delay based on index
+        this.fadeTimer = 0;
     }
 
     display() {
+        // Update fade
+        if (this.fadeTimer > 0) {
+            this.fadeTimer--;
+            if (this.fadeTimer === 0) {
+                if (this.fadeMode === 'visible') {
+                    this.fadeMode = 'fadeOut';
+                } else if (this.fadeMode === 'hidden') {
+                    this.fadeMode = 'fadeIn';
+                }
+            }
+        }
+
+        // Current fade state
         if (this.fadeMode === 'fadeOut') {
             this.fadeAlpha -= this.fadeSpeed;
             if (this.fadeAlpha <= 0) {
@@ -618,9 +636,23 @@ class RingPattern {
             this.fadeAlpha += this.fadeSpeed;
             if (this.fadeAlpha >= 255) {
                 this.fadeAlpha = 255;
-                this.fadeMode = 'visible';
+                this.fadeState = 'visible';
             }
         }
+
+        // if (this.fadeMode === 'fadeOut') {
+        //     this.fadeAlpha -= this.fadeSpeed;
+        //     if (this.fadeAlpha <= 0) {
+        //         this.fadeAlpha = 0;
+        //         this.fadeMode = 'hidden';
+        //     }
+        // } else if (this.fadeMode === 'fadeIn') {
+        //     this.fadeAlpha += this.fadeSpeed;
+        //     if (this.fadeAlpha >= 255) {
+        //         this.fadeAlpha = 255;
+        //         this.fadeMode = 'visible';
+        //     }
+        // }
 
         // Draw if not completely hidden
         if (this.fadeMode != 'hidden') {
