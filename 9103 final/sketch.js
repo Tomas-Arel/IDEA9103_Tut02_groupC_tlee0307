@@ -7,7 +7,6 @@ let baseHeight = 520; // set base height of canvas to be 520
 let scaling = 1; // set factor to scale artwork when window is resized
 
 let visibleInterval = 120; // How many frames to wait before changing circle visibility
-let nextVisibleState = 0; // To keep track of when to switch state
 
 // set outer ellipses variables
 let ellipses = [
@@ -603,7 +602,6 @@ class RingPattern {
         this.hasCurve = config.hasCurve ?? false;
         this.angle = config.angle ?? 0;
 
-        this.visible = true; // Set state to true
         this.fadeMode = 'visible';
         this.fadeAlpha = 255; // Alpha value between 0-255, set at max
         this.fadeSpeed = 3; // Control how fast the rings fade
