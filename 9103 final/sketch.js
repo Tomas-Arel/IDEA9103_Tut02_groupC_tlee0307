@@ -550,10 +550,8 @@ function draw() {
     }
 
     for (let r of rings) {
-        if (r.visible){
             r.display();
         }
-    }
 
     fillEllipse(ellipses);
     for (let i = 0; i < ellipses.length; i++) {
@@ -575,7 +573,11 @@ function draw() {
 function toggleVisibility() {
     // Toggle the circle Visibility
     for (let r of rings) {
-        r.visible = !r.visible;
+        if (r.fadeMode === 'visible') {
+            r.fadeMode = 'fadeOut';
+        } else if (r.fadeMode === 'hidden') {
+            r.fadeMode = 'fadeIn';
+        }
     }
 }
 
@@ -602,28 +604,52 @@ class RingPattern {
         this.angle = config.angle ?? 0;
 
         this.visible = true; // Set state to true
+        this.fadeMode = 'visible';
+        this.fadeAlpha = 255; // Alpha value between 0-255, set at max
+        this.fadeSpeed = 3; // Control how fast the rings fade
     }
 
     display() {
-        // border circle
-        noStroke();
-        noFill();
-        ellipse(this.x, this.y, this.r1 * 2);
-        ellipse(this.x, this.y, this.r2 * 2);
-        ellipse(this.x, this.y, this.r3 * 2);
+        if (this.fadeMode === 'fadeOut') {
+            this.fadeAlpha -= this.fadeSpeed;
+            if (this.fadeAlpha <= 0) {
+                this.fadeAlpha = 0;
+                this.fadeMode = 'hidden';
+            }
+        } else if (this.fadeMode === 'fadeIn') {
+            this.fadeAlpha += this.fadeSpeed;
+            if (this.fadeAlpha >= 255) {
+                this.fadeAlpha = 255;
+                this.fadeMode = 'visible';
+            }
+        }
 
-        // Each Area：Center，Inner Circle，Outer Circle
-        this.drawRegion(this.r0, this.r1, this.fillStyles[0], this.bgColors[0], this.patternColors[0]);
-        this.drawRegion(this.r1, this.r2, this.fillStyles[1], this.bgColors[1], this.patternColors[1]);
-        this.drawRegion(this.r2, this.r3, this.fillStyles[2], this.bgColors[2], this.patternColors[2]);
+        // Draw if not completely hidden
+        if (this.fadeMode != 'hidden') {
+            push();
+            drawingContext.globalAlpha = this.fadeAlpha / 255;
 
-        // arc
-        this.drawPinkCurve();
-        // Center white circle
-        noStroke();
-        fill(230);
-        ellipse(this.x, this.y, this.r0 * 2);  // control size using r0
+            // border circle
+            noStroke();
+            noFill();
+            ellipse(this.x, this.y, this.r1 * 2);
+            ellipse(this.x, this.y, this.r2 * 2);
+            ellipse(this.x, this.y, this.r3 * 2);
 
+            // Each Area：Center，Inner Circle，Outer Circle
+            this.drawRegion(this.r0, this.r1, this.fillStyles[0], this.bgColors[0], this.patternColors[0]);
+            this.drawRegion(this.r1, this.r2, this.fillStyles[1], this.bgColors[1], this.patternColors[1]);
+            this.drawRegion(this.r2, this.r3, this.fillStyles[2], this.bgColors[2], this.patternColors[2]);
+
+            // arc
+            this.drawPinkCurve();
+            // Center white circle
+            noStroke();
+            fill(230);
+            ellipse(this.x, this.y, this.r0 * 2);  // control size using r0
+
+            pop();
+        }
     }
 
     drawRegion(innerR, outerR, style, bgColor, patternColor) {
