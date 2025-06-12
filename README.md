@@ -54,7 +54,7 @@ In the draw function I have updated the code to start the fade sequence.
 
 Time is tracked through the use of [frameCount](https://p5js.org/reference/p5/frameCount/) which tracks the number of frames drawn since the sketch started. When frameCount reaches the value set by frameDelay the fade updates and we then move to the next ring and increment the ring index, this is checked against how many rings are made. Then once a full cycle is reached, we reverse the direction of the fade to bring the circles back.
 
-A for loop is used to update the ring opacities. Based on the current ring being modified, the opacity is changed and is also ensures that the opacity can only be within 0 (transparent) and 1 (visible).
+A for loop is used to update the ring opacities. Based on the current ring being modified, the opacity is changed and [constrain](https://p5js.org/reference/p5/constrain/)is used to ensures that the opacity can only be within 0 (transparent) and 1 (visible).
 
 Finally the rings are drawn. The if statement is used to skip drawing the fully transparent rings. [drawingContext](https://p5js.org/reference/p5/drawingContext/) is used to access the Alpha property of the ring object to update the opacity, while push and pop ensures it is only applied to the rings.
 
