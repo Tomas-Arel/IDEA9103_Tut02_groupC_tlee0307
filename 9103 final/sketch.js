@@ -6,7 +6,9 @@ let baseWidth = 520; // set base width of canvas to be 520
 let baseHeight = 520; // set base height of canvas to be 520
 let scaling = 1; // set factor to scale artwork when window is resized
 
-let visibleInterval = 120; // How many frames to wait before changing circle visibility
+let fadeDelay = 30; // frames between each ring fade
+let ringIndex = 0; // calculate what ring we are up to
+let fadeDirection = 1; // 1 for fading in, -1 for fading out
 
 // set outer ellipses variables
 let ellipses = [
@@ -328,7 +330,7 @@ function setup() {
     angleMode(RADIANS);
 
     // Calculate factor to scale artwork
-    scaling = min(width / baseWidth, height / baseHeight)
+    scaling = min(width / baseWidth, height / baseHeight);
 
     ringConfigs = [
         { //number 1
@@ -353,7 +355,7 @@ function setup() {
                 color('#E81207')
             ],
             hasCurve: false,
-            angle: PI / 3
+            angle: PI / 0
         },{ //number 3
             x: 370,
             y: 0,
@@ -529,28 +531,56 @@ function setup() {
         }
     ];
 
-    for (let i = 0; i < ringConfigs.length; i++) {
-        rings.push(new RingPattern(ringConfigs[i], i));
-    }
-
+    for (let config of ringConfigs) {
+            let ring = new RingPattern(config);
+            ring.opacity = 0; // Start all rings invisible
+            rings.push(ring);
+        }
 }
 
 
 function draw() {
     background(1, 89, 125);
 
+    push();
     // Scale and center the artpiece
     translate((width - baseWidth * scaling) / 2, (height - baseHeight * scaling) / 2);
     scale(scaling);
 
-    // Toggle the visibility at set intervals
-    if (frameCount % visibleInterval === 0) {
-        toggleVisibility();
+        // Update fade sequence
+    if (frameCount % fadeDelay === 0) {
+        // Move to next ring in sequence
+        ringIndex = (ringIndex + 1) % rings.length;
+        
+        // If we've completed a full cycle, reverse fade direction
+        if (ringIndex === 0) {
+            fadeDirection *= -1;
+        }
+    }
+    
+    // Update all ring opacities
+    for (let i = 0; i < rings.length; i++) {
+        let ring = rings[i];
+        
+        // Only update the current active ring
+        if (i === ringIndex) {
+            ring.opacity += fadeDirection * 0.05; // Control fade speed
+            
+            // Ensure opacity is between 0 and 1
+            ring.opacity = constrain(ring.opacity, 0, 1);
+        }
     }
 
+    // Draw all rings with their current opacity
     for (let r of rings) {
+        push();
+        // Apply opacity to the entire ring
+        if (r.opacity > 0) {
+            drawingContext.globalAlpha = r.opacity;
             r.display();
         }
+        pop();
+    }
 
     fillEllipse(ellipses);
     for (let i = 0; i < ellipses.length; i++) {
@@ -567,19 +597,8 @@ function draw() {
     }
     drawCircles(circles);
 
-}
+    pop();
 
-function toggleVisibility() {
-    // for (let r of rings) {
-    //     if (r.fadeMode === 'visible') {
-    //         r.fadeMode = 'fadeOut';
-    //     } else if (r.fadeMode === 'hidden') {
-    //         r.fadeMode = 'fadeIn';
-    //     }
-    // }
-    for (let r of rings) {
-        r.fadeTimer = r.fadeDelay; // reset timer with delay
-    }
 }
 
 function windowResized() {
@@ -588,7 +607,7 @@ function windowResized() {
 }
 
 class RingPattern {
-    constructor(config, ringIndex) {
+    constructor(config) {
         this.x = config.x;
         this.y = config.y;
 
@@ -604,82 +623,29 @@ class RingPattern {
         this.hasCurve = config.hasCurve ?? false;
         this.angle = config.angle ?? 0;
 
-        this.fadeMode = 'visible';
-        this.fadeAlpha = 255; // Alpha value between 0-255, set at max
-        this.fadeSpeed = 3; // Control how fast the rings fade
-        this.index = ringIndex; // Track which ring has faded
-        this.fadeDelay = ringIndex * 5 // Stagger the fade delay based on index
-        this.fadeTimer = 0;
+        this.opacity = 0;
     }
 
     display() {
-        // Update fade
-        if (this.fadeTimer > 0) {
-            this.fadeTimer--;
-            if (this.fadeTimer === 0) {
-                if (this.fadeMode === 'visible') {
-                    this.fadeMode = 'fadeOut';
-                } else if (this.fadeMode === 'hidden') {
-                    this.fadeMode = 'fadeIn';
-                }
-            }
-        }
+        // Border Circle
+        noStroke();
+        noFill();
+        ellipse(this.x, this.y, this.r1 * 2);
+        ellipse(this.x, this.y, this.r2 * 2);
+        ellipse(this.x, this.y, this.r3 * 2);
 
-        // Current fade state
-        if (this.fadeMode === 'fadeOut') {
-            this.fadeAlpha -= this.fadeSpeed;
-            if (this.fadeAlpha <= 0) {
-                this.fadeAlpha = 0;
-                this.fadeMode = 'hidden';
-            }
-        } else if (this.fadeMode === 'fadeIn') {
-            this.fadeAlpha += this.fadeSpeed;
-            if (this.fadeAlpha >= 255) {
-                this.fadeAlpha = 255;
-                this.fadeState = 'visible';
-            }
-        }
+        // Each Area: Center, Inner Circle, Outer Circle
+        this.drawRegion(this.r0, this.r1, this.fillStyles[0], this.bgColors[0], this.patternColors[0]);
+        this.drawRegion(this.r1, this.r2, this.fillStyles[1], this.bgColors[1], this.patternColors[1]);
+        this.drawRegion(this.r2, this.r3, this.fillStyles[2], this.bgColors[2], this.patternColors[2]);
 
-        // if (this.fadeMode === 'fadeOut') {
-        //     this.fadeAlpha -= this.fadeSpeed;
-        //     if (this.fadeAlpha <= 0) {
-        //         this.fadeAlpha = 0;
-        //         this.fadeMode = 'hidden';
-        //     }
-        // } else if (this.fadeMode === 'fadeIn') {
-        //     this.fadeAlpha += this.fadeSpeed;
-        //     if (this.fadeAlpha >= 255) {
-        //         this.fadeAlpha = 255;
-        //         this.fadeMode = 'visible';
-        //     }
-        // }
+        // arc
+        this.drawPinkCurve();
+        // Center white circle
+        noStroke();
+        fill(230);
+        ellipse(this.x, this.y, this.r0 * 2);  // control size using r0
 
-        // Draw if not completely hidden
-        if (this.fadeMode != 'hidden') {
-            push();
-            drawingContext.globalAlpha = this.fadeAlpha / 255;
-
-            // border circle
-            noStroke();
-            noFill();
-            ellipse(this.x, this.y, this.r1 * 2);
-            ellipse(this.x, this.y, this.r2 * 2);
-            ellipse(this.x, this.y, this.r3 * 2);
-
-            // Each Area：Center，Inner Circle，Outer Circle
-            this.drawRegion(this.r0, this.r1, this.fillStyles[0], this.bgColors[0], this.patternColors[0]);
-            this.drawRegion(this.r1, this.r2, this.fillStyles[1], this.bgColors[1], this.patternColors[1]);
-            this.drawRegion(this.r2, this.r3, this.fillStyles[2], this.bgColors[2], this.patternColors[2]);
-
-            // arc
-            this.drawPinkCurve();
-            // Center white circle
-            noStroke();
-            fill(230);
-            ellipse(this.x, this.y, this.r0 * 2);  // control size using r0
-
-            pop();
-        }
     }
 
     drawRegion(innerR, outerR, style, bgColor, patternColor) {
@@ -732,13 +698,13 @@ class RingPattern {
     drawLayeredRings(innerR, outerR, baseColors) {
         let ringCount = 14;
 
-        // Makes sure each colour appears once and uses 6 randomly
+        // Make sure each colour appears once and uses 6 randomly
         let colorPool = [...baseColors];  // Three colours
         while (colorPool.length < ringCount) {
             colorPool.push(random(baseColors));
         }
 
-        // shuffles the colour order
+        // Shuffles colour order
         shuffle(colorPool, true);
 
         // draw the rings
@@ -787,10 +753,6 @@ class RingPattern {
             }
         }
     }
-
-
-
-
 
     drawPinkCurve() {
         if (!this.hasCurve) return;
