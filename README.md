@@ -34,6 +34,11 @@ The ellipse and circles that surrounded our main rings reminded of paths you cou
 Overall through the two ideas of the Wheel of Fortune and Rock Pools I decided to create a time based artwork that would have the main circles disappear at set intervals. Each circle represents an opportunity or a turning point we are met with, over time these opportunities are either taken or missed, hence the disappearing rings. While the surrounding ellipse and circles represent the paths we take in life, there are many paths we can take that are all interconnected and there is never a wrong path. The return of the circles symbolise the idea that even though past opportunities are gone, new ones appear. 
 
 # Technical Explanation
+
+## Differences to group code
+I have commented out the noLoop(); specified in the setup of our group code to allow for animations<br>
+I am also using an earlier version of the group code from before we had optimised the window resizing and added an extra detail to one of the rings. Mostly because these parts were added following my work on my own individual section.
+
 ## Variables
 New variables were added in the beginning:
 - fadeDelay
